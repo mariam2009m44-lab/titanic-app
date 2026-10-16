@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Titanic AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Inter:wght@300;400;500;600&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="sea">
+  <div class="wave wave1"></div>
+  <div class="wave wave2"></div>
+  <div class="wave wave3"></div>
+</div>
+
+<div class="stars"></div>
+
+<div class="ship">
+  <div class="ship-body">
+    <div class="chimney c1"></div>
+    <div class="chimney c2"></div>
+    <div class="chimney c3"></div>
+    <div class="chimney c4"></div>
+    <div class="deck"></div>
+  </div>
+</div>
+
+<nav class="navbar">
+  <div class="logo">
+    <span class="logo-icon">&#9875;</span>
+    <span class="logo-text">TITANIC &middot; AI</span>
+  </div>
+  <div class="nav-links">
+    <span>RMS Titanic</span>
+    <span>&middot;</span>
+    <span>1912</span>
+  </div>
+</nav>
+
+<main class="chat-page">
+  <div class="chat-header">
+    <h1>Chat with Titanic AI</h1>
+    <p>اكتب عن أي راكب بالعربي أو الإنجليزي، والذكاء الاصطناعي هيتنبأ بمصيره</p>
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-messages" id="messages">
+      <div class="msg ai">
+        <div class="avatar ai-avatar">&#9875;</div>
+        <div class="bubble">
+          مرحبًا! أنا Titanic AI. اكتبلي عن راكب، مثلًا:
+          <br><br>
+          &bull; "امرأة 25 سنة في الدرجة الأولى"
+          <br>
+          &bull; "راجل 40 سنة درجة تالتة"
+          <br>
+          &bull; "طفل عمره 5 سنين"
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="اكتب هنا..." autocomplete="off">
+      <button id="sendBtn">إرسال</button>
+    </div>
+  </div>
+
+  <div class="suggestions">
+    <button class="chip" data-msg="امرأة 25 سنة في الدرجة الأولى">امرأة 25 سنة درجة أولى</button>
+    <button class="chip" data-msg="راجل 40 سنة في الدرجة التالتة">راجل 40 سنة درجة تالتة</button>
+    <button class="chip" data-msg="طفل عمره 5 سنين">طفل 5 سنين</button>
+    <button class="chip" data-msg="سيدة 30 سنة في الدرجة التانية">سيدة 30 سنة درجة تانية</button>
+  </div>
+</main>
+
+<footer>
+  <p>Built with Python &middot; Flask &middot; scikit-learn &middot; ML + NLP</p>
+</footer>
+
+<script>
+const messages = document.getElementById('messages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function addMessage(text, type, confidence) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  let bubbleContent = text.replace(/\n/g, '<br>');
+  if (confidence !== undefined) {
+    bubbleContent += '<div class="conf-badge">دقة التوقع: ' + confidence + '%</div>';
+  }
+  if (type === 'ai') {
+    div.innerHTML = '<div class="avatar ai-avatar">&#9875;</div><div class="bubble">' + bubbleContent + '</div>';
+  } else {
+    div.innerHTML = '<div class="bubble">' + bubbleContent + '</div><div class="avatar user-avatar">أنا</div>';
+  }
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+  addMessage(text, 'user');
+  userInput.value = '';
+
+  const thinking = document.createElement('div');
+  thinking.className = 'msg ai thinking';
+  thinking.innerHTML = '<div class="avatar ai-avatar">&#9875;</div><div class="bubble">يفكر...</div>';
+  messages.appendChild(thinking);
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const response = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: text})
+    });
+    const data = await response.json();
+    messages.removeChild(thinking);
+    addMessage(data.text, 'ai', data.confidence);
+    if (data.status === 'survived') {
+      messages.lastChild.classList.add('survived');
+    } else {
+      messages.lastChild.classList.add('died');
+    }
+  } catch (e) {
+    messages.removeChild(thinking);
+    addMessage('حدث خطأ، حاول تاني.', 'ai');
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    userInput.value = chip.dataset.msg;
+    sendMessage();
+  });
+});
+</script>
+
+</body>
+</html>
